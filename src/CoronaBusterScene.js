@@ -10,6 +10,11 @@ export default class CoronaBusterScene extends Phaser.Scene {
         this.nav_left = false
         this.nav_right = false
         this.shoot = false
+        this.player = undefined
+        this.speed = 300
+        this.cursor = undefined
+        this.key_a = undefined
+        this.key_d = undefined
     }
 
     preload() {
@@ -18,6 +23,9 @@ export default class CoronaBusterScene extends Phaser.Scene {
         this.load.image('left-btn','assets/images/left-btn.png')
         this.load.image('right-btn','assets/images/right-btn.png')
         this.load.image('shoot-btn','assets/images/shoot-btn.png')
+        this.load.spritesheet('player','assets/images/ship.png',{
+            frameWidth:66, frameHeight:66
+        })
     }
 
     create() {
@@ -33,6 +41,11 @@ export default class CoronaBusterScene extends Phaser.Scene {
         Phaser.Actions.RandomRectangle(this.clouds.getChildren(),this.physics.world.bounds)
 
         this.createButton()
+        this.player = this.createPlayer()
+
+        this.cursor = this.input.keyboard.createCursorKeys()
+        this.key_a = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A)
+        this.key_d = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
     }
 
     update() {
@@ -42,7 +55,9 @@ export default class CoronaBusterScene extends Phaser.Scene {
                 child.x = Phaser.Math.Between(10, 400)
                 child.y = child.displayHeight * -1
             }
-        })
+        }, this)
+
+        this.movePlayer(this.player)
     }
 
     createButton() {
@@ -66,5 +81,51 @@ export default class CoronaBusterScene extends Phaser.Scene {
         nav_right.on('pointerout', ()=> {
             this.nav_right = false
         }, this)
+    }
+
+    createPlayer(){
+        const player = this.physics.add.sprite(200,450,'player')
+        player.setCollideWorldBounds(true)
+
+        this.anims.create({
+            key:'turn',
+            frames:[{
+                key:'player',
+                frame:0
+            }]
+        })
+        this.anims.create({
+            key:'left',
+            frames: this.anims.generateFrameNumbers('player',{
+                start: 1,
+                end:2
+            }),
+            frameRate:10
+        })
+        this.anims.create({
+            key:'right',
+            frames: this.anims.generateFrameNumbers('player',{
+                start: 1,
+                end:2
+            }),
+            frameRate:10
+        })
+
+        return player
+    }
+
+    movePlayer(player){
+        if(this.cursor.left.isDown || this.nav_left || this.key_a.isDown){
+            this.player.setVelocityX(this.speed * -1)
+            this.player.anims.play('left',true)
+            this.player.setFlipX(false)
+        }else if(this.cursor.right.isDown || this.nav_right || this.key_d.isDown){
+            this.player.setVelocityX(this.speed * 1)
+            this.player.anims.play('right',true)
+            this.player.setFlipX(true)
+        }else{
+            this.player.setVelocityX(0)
+            this.player.anims.play('turn')
+        }
     }
 }
