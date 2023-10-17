@@ -1,4 +1,5 @@
 import Phaser from "phaser"
+import FallingObject from "./game/FallingObject"
 
 export default class CoronaBusterScene extends Phaser.Scene {
     constructor() {
@@ -15,6 +16,9 @@ export default class CoronaBusterScene extends Phaser.Scene {
         this.cursor = undefined
         this.key_a = undefined
         this.key_d = undefined
+        this.enemies = undefined
+        this.enemySpeed = 60
+        this.rotationVal = 10
     }
 
     preload() {
@@ -26,6 +30,7 @@ export default class CoronaBusterScene extends Phaser.Scene {
         this.load.spritesheet('player','assets/images/ship.png',{
             frameWidth:66, frameHeight:66
         })
+        this.load.image('enemy','assets/images/enemy.png')
     }
 
     create() {
@@ -46,6 +51,19 @@ export default class CoronaBusterScene extends Phaser.Scene {
         this.cursor = this.input.keyboard.createCursorKeys()
         this.key_a = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A)
         this.key_d = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
+
+        this.enemies = this.physics.add.group({
+            classType : FallingObject,
+            maxSize : 10,
+            runChildUpdate : true
+        })
+
+        this.time.addEvent({
+            delay : 2000,
+            callback : this.spawnEnemy,
+            callbackScope : this,
+            loop : true
+        })
     }
 
     update() {
@@ -126,6 +144,21 @@ export default class CoronaBusterScene extends Phaser.Scene {
         }else{
             this.player.setVelocityX(0)
             this.player.anims.play('turn')
+        }
+    }
+
+    spawnEnemy(){
+        const config = {
+            speed : this.enemySpeed,
+            rotation : 0.06
+        }
+    
+        const enemy = this.enemies.get(0,0,'enemy',config)
+        const enemyWidth = enemy.displayWidth
+        const positionX = Phaser.Math.Between(enemyWidth, this.scale.width - enemyWidth)
+    
+        if(enemy){
+            enemy.spawn(positionX)
         }
     }
 }
