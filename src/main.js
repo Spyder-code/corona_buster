@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 
 import CoronaBusterScene from './CoronaBusterScene'
+import GameOverScene from './GameOverScene'
 
 const config = {
 	type: Phaser.AUTO,
@@ -14,7 +15,7 @@ const config = {
 		mode: Phaser.Scale.FIT,
 		autoCenter: Phaser.Scale.CENTER_BOTH
 	},
-	scene: [CoronaBusterScene],
+	scene: [CoronaBusterScene, GameOverScene],
 }
 
 export default new Phaser.Game(config)
