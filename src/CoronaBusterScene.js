@@ -1,5 +1,8 @@
 import Phaser from "phaser"
 import FallingObject from "./game/FallingObject"
+import Laser from "./game/Laser"
+import LifeLabel from "./game/LifeLabel"
+import ScoreLabel from "./game/ScoreLabel"
 
 export default class CoronaBusterScene extends Phaser.Scene {
     constructor() {
@@ -19,6 +22,10 @@ export default class CoronaBusterScene extends Phaser.Scene {
         this.enemies = undefined
         this.enemySpeed = 60
         this.rotationVal = 10
+        this.lasers = undefined
+        this.lastFired = 0
+        this.scoreLabel = undefined
+        this.lifeLabel = undefined
     }
 
     preload() {
@@ -28,9 +35,16 @@ export default class CoronaBusterScene extends Phaser.Scene {
         this.load.image('right-btn','assets/images/right-btn.png')
         this.load.image('shoot-btn','assets/images/shoot-btn.png')
         this.load.spritesheet('player','assets/images/ship.png',{
-            frameWidth:66, frameHeight:66
+            frameWidth:66, 
+            frameHeight:66
         })
         this.load.image('enemy','assets/images/enemy.png')
+        this.load.spritesheet('laser','assets/images/laser-bolts.png',{
+            frameWidth:16,
+            frameHeight:32,
+            startFrame:16,
+            endFrame:32
+        })
     }
 
     create() {
@@ -64,9 +78,20 @@ export default class CoronaBusterScene extends Phaser.Scene {
             callbackScope : this,
             loop : true
         })
+
+        this.lasers = this.physics.add.group({
+            classType: Laser,
+            maxSize: 10,
+            runChildUpdate: true
+        })
+
+        this.physics.add.overlap(this.lasers,this.enemies,this.hitEnemy,null,this)
+        this.scoreLabel = this.creareScoreLabel(16,16,0)
+        this.lifeLabel = this.createLifeLabel(16,43,3)
+        this.physics.add.overlap(this.player,this.enemies,this.decreaseLife,null,this)
     }
 
-    update() {
+    update(time) {
         this.clouds.children.iterate((child)=>{
             child.setVelocity(20)
             if (child.y > this.scale.height) {
@@ -75,7 +100,7 @@ export default class CoronaBusterScene extends Phaser.Scene {
             }
         }, this)
 
-        this.movePlayer(this.player)
+        this.movePlayer(this.player, time)
     }
 
     createButton() {
@@ -98,6 +123,14 @@ export default class CoronaBusterScene extends Phaser.Scene {
 
         nav_right.on('pointerout', ()=> {
             this.nav_right = false
+        }, this)
+
+        shoot.on('pointerdown',()=>{
+            this.shoot = true
+        }, this)
+
+        shoot.on('pointerout',()=>{
+            this.shoot = false
         }, this)
     }
 
@@ -132,7 +165,7 @@ export default class CoronaBusterScene extends Phaser.Scene {
         return player
     }
 
-    movePlayer(player){
+    movePlayer(player,time){
         if(this.cursor.left.isDown || this.nav_left || this.key_a.isDown){
             this.player.setVelocityX(this.speed * -1)
             this.player.anims.play('left',true)
@@ -144,6 +177,14 @@ export default class CoronaBusterScene extends Phaser.Scene {
         }else{
             this.player.setVelocityX(0)
             this.player.anims.play('turn')
+        }
+
+        if ((this.shoot) && time > this.lastFired) {
+            const laser = this.lasers.get(0,0,'laser')
+            if(laser){
+                laser.fire(this.player.x,this.player.y)
+                this.lastFired = time + 150
+            }
         }
     }
 
@@ -159,6 +200,48 @@ export default class CoronaBusterScene extends Phaser.Scene {
     
         if(enemy){
             enemy.spawn(positionX)
+        }
+    }
+
+    hitEnemy(laser, enemy){
+        laser.erase()
+        enemy.die()
+
+        this.scoreLabel.add(10)
+        if(this.scoreLabel.getScore() % 100 ==0){
+            this.enemySpeed += 30
+        }
+    }
+
+    creareScoreLabel(x,y,skore){
+        const style = {fontSize:'32px', fill:'#000'}
+        const label = new ScoreLabel(this,x,y,skore,style).setDepth(1)
+        this.add.existing(label)
+        return label
+    }
+
+    createLifeLabel(x,y,life){
+        const style = {
+            fontSize:'32px',
+            fill:'#000'
+        }
+        const label = new LifeLabel(this,x,y,life,style).setDepth(1)
+        this.add.existing(label)
+        return label
+    }
+
+    decreaseLife(player,enemy){
+        enemy.die()
+        this.lifeLabel.subtract(1)
+
+        if(this.lifeLabel.getLife() == 2){
+            player.setTint('0xff0000')
+        }else if(this.lifeLabel.getLife() == 1){
+            player.setTint('0xff0000').setAlpha(.2)
+        }else if(this.lifeLabel.getLife() == 0){
+            this.scene.start('game-over-scene',{
+                score: this.scoreLabel.getScore()
+            })
         }
     }
 }
